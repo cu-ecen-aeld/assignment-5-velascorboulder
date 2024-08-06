@@ -1,0 +1,81 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          custom_modules
+# Required-Start:    $local_fs $remote_fs
+# Required-Stop:     $local_fs $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Script to load and unload multiple modules
+# Description:       This script will load and unload multiple modules
+### END INIT INFO
+
+# Define the names of the modules
+MODULES="scull hello faulty"
+
+# Check if a module is already loaded
+is_loaded() {
+    module=$1
+    lsmod | grep -q "^$module "
+}
+
+# Load the modules
+load_modules() {
+    for module in $MODULES; do
+        if is_loaded "$module"; then
+            echo "$module is already loaded"
+        else
+            echo "Loading $module module"
+            modprobe "$module"
+            if [ $? -ne 0 ]; then
+                echo "Failed to load $module module"
+                exit 1
+            fi
+        fi
+    done
+}
+
+# Unload the modules
+unload_modules() {
+    for module in $MODULES; do
+        if is_loaded "$module"; then
+            echo "Unloading $module module"
+            rmmod "$module"
+            if [ $? -ne 0 ]; then
+                echo "Failed to unload $module module"
+                exit 1
+            fi
+        else
+            echo "$module is not loaded"
+        fi
+    done
+}
+
+# Parse the command line arguments
+case "$1" in
+    start)
+        load_modules
+        ;;
+    stop)
+        unload_modules
+        ;;
+    restart)
+        unload_modules
+        load_modules
+        ;;
+    status)
+        for module in $MODULES; do
+            if is_loaded "$module"; then
+                echo "$module is loaded"
+            else
+                echo "$module is not loaded"
+            fi
+        done
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|status}"
+        exit 1
+        ;;
+esac
+
+exit 0
+
